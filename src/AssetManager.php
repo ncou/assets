@@ -60,6 +60,16 @@ final class AssetManager
     private ?AssetPublisher $publisher = null;
 
     /**
+     * @psalm-var CssFile[]
+     */
+    private array $cssFiles = [];
+
+    /**
+     * @psalm-var JsFile[]
+     */
+    private array $jsFiles = [];
+
+    /**
      * @param Aliases $aliases The aliases instance.
      * @param AssetLoaderInterface $loader The loader instance.
      * @param string[] $allowedBundleNames List of names of allowed asset bundles. If the array is empty, then any
@@ -92,7 +102,7 @@ final class AssetManager
     public function register(string $name, ?int $jsPosition = null, ?int $cssPosition = null): void
     {
         $this->registerAssetBundle($name, $jsPosition, $cssPosition);
-
+        $this->registerFiles($name);
     }
 
     /**
@@ -204,7 +214,7 @@ final class AssetManager
         return $this->loadedBundles[$name] = is_subclass_of($name, AssetBundle::class) ? new $name() : new AssetBundle();
 
 
-
+        // TODO : code ci-dessous à virer !!!!
 
 
 
@@ -233,6 +243,299 @@ final class AssetManager
 
         throw new InvalidConfigException("Invalid configuration of the \"{$name}\" asset bundle.");
     }
+
+
+
+    /**
+     * Register assets from a named bundle and its dependencies.
+     *
+     * @param string $bundleName The asset bundle name.
+     *
+     * @throws InvalidConfigException If asset files are not found.
+     */
+    private function registerFiles(string $bundleName): void
+    {
+        $bundle = $this->registeredBundles[$bundleName];
+
+        /** @var string $dep */
+        foreach ($bundle->depends as $dep) {
+            $this->registerFiles($dep);
+        }
+
+        $this->registrarRegister($bundle);
+    }
+
+
+    /**
+     * Registers assets from a bundle considering dependencies.
+     *
+     * @throws InvalidConfigException If asset files are not found.
+     */
+    private function registrarRegister(AssetBundle $bundle): void
+    {
+        /** @var JsFile|string $js */
+        foreach ($bundle->js as $key => $js) {
+            $this->registerJsFile(
+                $bundle,
+                is_string($key) ? $key : null,
+                $js,
+            );
+        }
+
+        /** @var CssFile|string $css */
+        foreach ($bundle->css as $key => $css) {
+            $this->registerCssFile(
+                $bundle,
+                is_string($key) ? $key : null,
+                $css,
+            );
+        }
+    }
+
+
+    /**
+     * Registers a JavaScript file.
+     *
+     * @param array|string $js
+     *
+     * @throws InvalidConfigException
+     */
+    private function registerJsFile(AssetBundle $bundle, ?string $key, $js): void
+    {
+        if (is_array($js)) {
+            if (!array_key_exists(0, $js)) {
+                throw new InvalidConfigException('Do not set in array JavaScript URL.');
+            }
+            $url = $js[0];
+        } else {
+            $url = $js;
+        }
+
+        if (!is_string($url)) {
+            throw new InvalidConfigException(
+                sprintf(
+                    'JavaScript file should be string. Got %s.',
+                    $this->getType($url),
+                )
+            );
+        }
+
+        if ($url === '') {
+            throw new InvalidConfigException('JavaScript file should be non empty string.');
+        }
+
+        $url = $this->loaderGetAssetUrl($bundle, $url);
+
+        if (is_array($js)) {
+            $js[0] = $url;
+        } else {
+            $js = [$url];
+        }
+
+        if ($bundle->jsPosition !== null && !isset($js[1])) {
+            $js[1] = $bundle->jsPosition;
+        }
+
+        /** @psalm-var JsFile */
+        $js = $this->mergeOptionsWithArray($bundle->jsOptions, $js);
+
+        $this->jsFiles[$key ?: $url] = $js;
+    }
+
+    /**
+     * Registers a CSS file.
+     *
+     * @param array|string $css
+     *
+     * @throws InvalidConfigException
+     */
+    private function registerCssFile(AssetBundle $bundle, ?string $key, $css): void
+    {
+        if (is_array($css)) {
+            if (!array_key_exists(0, $css)) {
+                throw new InvalidConfigException('Do not set in array CSS URL.');
+            }
+            $url = $css[0];
+        } else {
+            $url = $css;
+        }
+
+        if (!is_string($url)) {
+            throw new InvalidConfigException(
+                sprintf(
+                    'CSS file should be string. Got %s.',
+                    $this->getType($url),
+                )
+            );
+        }
+
+        if ($url === '') {
+            throw new InvalidConfigException('CSS file should be non empty string.');
+        }
+
+        $url = $this->loaderGetAssetUrl($bundle, $url);
+
+        if (is_array($css)) {
+            $css[0] = $url;
+        } else {
+            $css = [$url];
+        }
+
+        if ($bundle->cssPosition !== null && !isset($css[1])) {
+            $css[1] = $bundle->cssPosition;
+        }
+
+        /** @psalm-var CssFile */
+        $css = $this->mergeOptionsWithArray($bundle->cssOptions, $css);
+
+        $this->cssFiles[$key ?: $url] = $css;
+    }
+
+    public function loaderGetAssetUrl(AssetBundle $bundle, string $assetPath): string
+    {
+        if (!$bundle->cdn && empty($bundle->basePath)) {
+            throw new InvalidConfigException(
+                'basePath must be set in AssetLoader->withBasePath($path) or ' .
+                'AssetBundle property public ?string $basePath = $path'
+            );
+        }
+
+        if (!$bundle->cdn && $bundle->baseUrl === null) {
+            throw new InvalidConfigException(
+                'baseUrl must be set in AssetLoader->withBaseUrl($path) or ' .
+                'AssetBundle property public ?string $baseUrl = $path'
+            );
+        }
+
+        $asset = $this->UtilsResolveAsset($bundle, $assetPath, []); // TODO : voir pour gerer un array $this->assetMap au lieu d'un [] par défault !!!!
+
+        if (!empty($asset)) {
+            $assetPath = $asset;
+        }
+
+        if ($bundle->cdn) {
+            return $bundle->baseUrl === null
+                ? $assetPath
+                : $bundle->baseUrl . '/' . $assetPath;
+        }
+
+        if (! $this->UtilsIsRelative($assetPath) || strncmp($assetPath, '/', 1) === 0) {
+            return $assetPath;
+        }
+
+        //$path = "{$this->getBundleBasePath($bundle)}/{$assetPath}";
+        //$url = "{$this->getBundleBaseUrl($bundle)}/{$assetPath}";
+
+        $path = directory($bundle->basePath). '/' . $assetPath; // TODO : gérer un objet Directories directement dans cette classe pour faire un ->get()
+        $url = directory($bundle->baseUrl). '/' . $assetPath; // TODO : gérer un objet Directories directement dans cette classe pour faire un ->get()
+
+        if (!is_file($path)) {
+            throw new InvalidConfigException("Asset files not found: \"{$path}\".");
+        }
+
+        return $url;
+    }
+
+    /**
+     * @throws InvalidConfigException
+     */
+    // TODO : code bizarre !!! à améliorer je pense !!!!
+    private function mergeOptionsWithArray(array $options, array $array): array
+    {
+        /** @var mixed $value */
+        foreach ($options as $key => $value) {
+            if (is_int($key)) {
+                throw new InvalidConfigException(
+                    'JavaScript or CSS options should be list of key/value pairs with string keys. Got integer key.'
+                );
+            }
+
+            if (!array_key_exists($key, $array)) {
+                /** @var mixed */
+                $array[$key] = $value;
+            }
+        }
+
+        return $array;
+    }
+
+    /**
+     * Returns a value indicating whether a URL is relative.
+     *
+     * A relative URL does not have host info part.
+     *
+     * @param string $url The URL to be checked.
+     *
+     * @return bool Whether the URL is relative.
+     */
+    public function UtilsIsRelative(string $url): bool
+    {
+        return strncmp($url, '//', 2) && strpos($url, '://') === false;
+    }
+
+    /**
+     * Resolves the actual URL for the specified asset.
+     *
+     * @param AssetBundle $bundle The asset bundle which the asset file belongs to.
+     * @param string $assetPath The asset path. This should be one of the assets listed
+     * in {@see AssetBundle::$js} or {@see AssetBundle::$css}.
+     * @param array $assetMap Mapping from source asset files (keys) to target asset files (values)
+     * {@see AssetPublisher::$assetMap}.
+     *
+     * @psalm-param array<string, string> $assetMap
+     *
+     * @return string|null The actual URL for the specified asset, or null if there is no mapping.
+     */
+    public function UtilsResolveAsset(AssetBundle $bundle, string $assetPath, array $assetMap): ?string
+    {
+        if (isset($assetMap[$assetPath])) {
+            return $assetMap[$assetPath];
+        }
+
+        if (!empty($bundle->sourcePath) && $this->UtilsIsRelative($assetPath)) {
+            $assetPath = $bundle->sourcePath . '/' . $assetPath;
+        }
+
+        $n = mb_strlen($assetPath, 'utf-8'); // TODO : ajouter dans le fichier composer qu'il faut supporter le php pluging/dll mb_string
+
+        foreach ($assetMap as $from => $to) {
+            $n2 = mb_strlen($from, 'utf-8');
+            if ($n2 <= $n && substr_compare($assetPath, $from, $n - $n2, $n2) === 0) {
+                return $to;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @param mixed $value
+     */
+    // TODO : utiliser directement la fonction get_debug_type() !!!!
+    private function getType($value): string
+    {
+        return is_object($value) ? get_class($value) : gettype($value);
+    }
+
+
+    /**
+     * @return array Config array of CSS files.
+     * @psalm-return CssFile[]
+     */
+    public function getCssFiles(): array
+    {
+        return $this->cssFiles;
+    }
+
+    /**
+     * @return array Config array of JavaScript files.
+     * @psalm-return JsFile[]
+     */
+    public function getJsFiles(): array
+    {
+        return $this->jsFiles;
+    }
+
 
 
 }
