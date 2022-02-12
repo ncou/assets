@@ -14,7 +14,6 @@ namespace Chiron\Assets;
  * An asset bundle can depend on other asset bundles. When registering an asset bundle with a view, all its dependent
  * asset bundles will be automatically registered.
  */
-// TODO : ajouter un constructeur privé pour sécuriser l'instanciation de cette classe ????
 class AssetBundle
 {
     /**

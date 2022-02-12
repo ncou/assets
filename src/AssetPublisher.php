@@ -268,8 +268,8 @@ final class AssetPublisher
     }
 
     /**
-     * Generate a CRC32 hash for the directory path. Collisions are higher than MD5 but generates a much smaller hash
-     * string.
+     * Generate a CRC32 hash for the directory path.
+     * Collisions are higher than MD5 but generates a much smaller hash string.
      *
      * @param string $path The string to be hashed.
      *
@@ -290,6 +290,6 @@ final class AssetPublisher
 
         $path = (is_file($path) ? dirname($path) : $path) . $fs->lastModifiedTime($path);
 
-        return sprintf('%x', crc32($path . '|' . $this->linkAssets)); // TODO : faire un hash('crc32b')
+        return sprintf('%x', crc32($path . '|' . $this->linkAssets)); // TODO : faire un hash('crc32b') ????
     }
 }

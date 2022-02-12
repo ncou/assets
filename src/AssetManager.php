@@ -6,6 +6,9 @@ namespace Chiron\Assets;
 
 use RuntimeException;
 
+// TODO : regarder ici pour faire un minify des .js et .css ainsi qu'un join des fichiers !!!!
+//https://github.com/fisharebest/laravel-assets
+
 /**
  * AssetManager manages asset configuration and loading.
  *
