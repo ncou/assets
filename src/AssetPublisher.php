@@ -27,7 +27,7 @@ final class AssetPublisher
     /**
      * @var bool Whether to use symbolic link to publish asset files.
      */
-    private bool $linkAssets;
+    private bool $linkAssets; // TODO : à conserver ???
 
     /**
      * @var int The permission to be set for newly generated asset directories.
@@ -43,7 +43,7 @@ final class AssetPublisher
      * @var callable|null A callback that will be called to produce hash for asset directory generation.
      * @psalm-var HashCallback|null
      */
-    private $hashCallback = null;
+    private $hashCallback = null; // TODO : à virer ????
 
     /**
      * @var array Contain published {@see AssetsBundle}.

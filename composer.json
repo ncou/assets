@@ -16,7 +16,8 @@
     },
     "require": {
         "php": "^8.0 || ^8.1",
-        "chiron/core": "^1.0"
+        "chiron/core": "^1.0",
+        "ext-mbstring": "*"
     },
     "require-dev": {
         "phpunit/phpunit": "^8.0",

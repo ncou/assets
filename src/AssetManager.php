@@ -258,6 +258,7 @@ final class AssetManager
      */
     private function registerFiles(string $bundleName): void
     {
+        /** @psaml-var AssetBundle */
         $bundle = $this->registeredBundles[$bundleName];
 
         /** @var string $dep */
@@ -499,7 +500,7 @@ final class AssetManager
             $assetPath = $bundle->sourcePath . '/' . $assetPath;
         }
 
-        $n = mb_strlen($assetPath, 'utf-8'); // TODO : ajouter dans le fichier composer qu'il faut supporter le php pluging/dll mb_string
+        $n = mb_strlen($assetPath, 'utf-8');
 
         foreach ($assetMap as $from => $to) {
             $n2 = mb_strlen($from, 'utf-8');
