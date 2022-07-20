@@ -286,7 +286,7 @@ final class AssetPublisher
         $fs = new Filesystem();
 
 
-
+        // TODO : vérifier mais normalement on recois uniquement un fichier (donc is_file toujours à true), donc il suffit de récupérer le "filemtime($path)" pour avoir un numérique qui servira de hash et donc pas besoin de faire un crc32 d'une string. ATTENTION pour cela il faut virer la notion de "linkAssets" dans cette classe, je ne pense pas qu'on utilisera cette fonctionnalité !!!!
 
         $path = (is_file($path) ? dirname($path) : $path) . $fs->lastModifiedTime($path);
 

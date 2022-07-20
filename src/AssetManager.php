@@ -6,6 +6,8 @@ namespace Chiron\Assets;
 
 use RuntimeException;
 
+//https://github.com/aelvan/Stamp-Craft/blob/craft3/src/variables/StampVariable.php
+
 // TODO : regarder ici pour faire un minify des .js et .css ainsi qu'un join des fichiers !!!!
 //https://github.com/fisharebest/laravel-assets
 
@@ -474,6 +476,7 @@ final class AssetManager
      */
     public function UtilsIsRelative(string $url): bool
     {
+        // TODO : attention ce n'est pas correcte, car on doit tester si la chaine commence par '//' OU (||) si elle contient '://' ici on utilise un ET (&&) ce qui n'est pas logique !!!!
         return strncmp($url, '//', 2) && strpos($url, '://') === false;
     }
 

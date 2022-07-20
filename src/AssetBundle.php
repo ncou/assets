@@ -242,7 +242,7 @@ class AssetBundle
      * The options to be passed to {@see AssetPublisherInterface::publish()} when the asset bundle
      * is being published. This property is used only when {@see $sourcePath} is set.
      */
-    public array $publishOptions = [];
+    public array $publishOptions = []; // TODO : à virer, ce n'est pas utilisé. C'est les options du Filesystem lorsuq'on effectue la copie de l'asset dans le répertoire cible.
 
     /**
      * List of file paths to export into a format readable
@@ -261,7 +261,7 @@ class AssetBundle
      * ]:
      * ```
      */
-    public array $export = [];
+    public array $export = []; // TODO : à virer ce n'est pas utilisé.
 
     /**
      * The directory that contains the source asset files for this asset bundle.
